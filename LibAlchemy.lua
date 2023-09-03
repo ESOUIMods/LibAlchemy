@@ -1,20 +1,23 @@
-LibAlchemy = {}
-LibAlchemy.isMMInitialized = false -- Master Merchant
-LibAlchemy.isATTInitialized = false -- Arkadius Trade Tools
-LibAlchemy.isTTCInitialized = false
-LibAlchemy.isATTiInitialized = false -- Alchemy Tool Tip
+-- Input effects indices
+local EFFECT_INDEX_PRIMARY = 1
+local EFFECT_INDEX_SECONDARY = 2
+local EFFECT_INDEX_TERTIARY = 3
+local EFFECT_INDEX_PROLONGED = 4
 
-LibAlchemy.SOURCE_MM = 1
-LibAlchemy.SOURCE_ATT = 2
-LibAlchemy.SOURCE_TTC = 3
-LibAlchemy.SOURCE_ATTip = 4
+-- Effect lengths
+local EFFECT_LENGTH_ONE = 1
+local EFFECT_LENGTH_TWO = 2
+local EFFECT_LENGTH_THREE = 3
+
+local LIBALCHEMY_WRIT_ITEMTYPE_POTION = 199
+local LIBALCHEMY_WRIT_ITEMTYPE_POISON = 239
 
 function LibAlchemy:InitializePrices(source)
   --Initializes prices using LibPrice, you need to call this function in your addon before you can use any price related functions
   if source == LibAlchemy.SOURCE_MM and LibAlchemy.isMMInitialized then return end
-  if source == LibAlchemy.SOURCE_ATT and LibAlchemy.isATTInitialized then return end
+  if source == LibAlchemy.SOURCE_ATT and LibAlchemy.isArkadiusInitialized then return end
   if source == LibAlchemy.SOURCE_TTC and LibAlchemy.isTTCInitialized then return end
-  if source == LibAlchemy.SOURCE_ATTip and LibAlchemy.isATTiInitialized then return end
+  if source == LibAlchemy.SOURCE_ATTip and LibAlchemy.isAttInitialized then return end
 
   --Reagents
   LibAlchemy.reagents[30148][2] = LibPrice.ItemLinkToPriceGold("|H0:item:30148:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h")
@@ -72,9 +75,9 @@ function LibAlchemy:InitializePrices(source)
   LibAlchemy.solvents["CP"][258][1] = LibPrice.ItemLinkToPriceGold("|H0:item:64501:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h") --Lorkhan Tears
   LibAlchemy.solvents["CP"][258][2] = LibPrice.ItemLinkToPriceGold("|H0:item:75365:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h") --Alkahest
   if source == LibAlchemy.SOURCE_MM then LibAlchemy.isMMInitialized = true end
-  if source == LibAlchemy.SOURCE_ATT then LibAlchemy.isATTInitialized = true end
+  if source == LibAlchemy.SOURCE_ATT then LibAlchemy.isArkadiusInitialized = true end
   if source == LibAlchemy.SOURCE_TTC then LibAlchemy.isTTCInitialized = true end
-  if source == LibAlchemy.SOURCE_ATTip then LibAlchemy.isATTiInitialized = true end
+  if source == LibAlchemy.SOURCE_ATTip then LibAlchemy.isAttInitialized = true end
 end
 
 --input table of effect names for example {"RestoreHealth","RestoreMagicka","RestoreStamina"}
@@ -82,22 +85,22 @@ end
 --prolonged effect always has to have index = 4
 --for example, if you want a combination with only 2 effects and one of them to be prolonged you input {"RestoreHealth","RestoreMagicka",[4] = "RestoreHealth"}
 --outputs IDs (1st number in itemLinks, not actual itemLinks) for reagents that will create desired combination for cheapest price
-function LibAlchemy:getBestCombination(tableOfEffects)
+local function getCombinations(tableOfEffects)
   local effect1, effect2, effect3, prolongedEffect, Combinations, length
   local BestCombination
-  if tableOfEffects[1] then
+  if tableOfEffects[1] and tableOfEffects[1] ~= 0 then
     effect1 = tableOfEffects[1]
     length = 1
   end
-  if tableOfEffects[2] then
+  if tableOfEffects[2] and tableOfEffects[2] ~= 0 then
     effect2 = tableOfEffects[2]
     length = 2
   end
-  if tableOfEffects[3] then
+  if tableOfEffects[3] and tableOfEffects[3] ~= 0 then
     effect3 = tableOfEffects[3]
     length = 3
   end
-  if tableOfEffects[4] then
+  if tableOfEffects[4] and tableOfEffects[4] ~= 0 then
     prolongedEffect = tableOfEffects[4]
   end
 
@@ -115,17 +118,17 @@ function LibAlchemy:getBestCombination(tableOfEffects)
   elseif length == 2 then
     Combinations = LibAlchemy:TwoEffects(effect1, effect2)
     Combinations = LibAlchemy:sortOutWrongCombinations3(Combinations, { effect1, effect2 })
-    if effectAdditional then
-      Combinations = LibAlchemy:sortOutAdditional(Combinations, effectAdditional)
+    if prolongedEffect then
+      Combinations = LibAlchemy:sortOutAdditional(Combinations, prolongedEffect)
     end
     return LibAlchemy:getCheapestCombination(Combinations)
   elseif length == 1 then
     Combinations = LibAlchemy:OneEffect(effect1)
     Combinations = LibAlchemy:sortOutWrongCombinations2(Combinations, effect1)
-    if effectAdditional then
+    if prolongedEffect then
       Combinations = LibAlchemy:OneEffectAlt(effect1)
       Combinations = LibAlchemy:sortOutWrongCombinations3(Combinations, { effect1 })
-      Combinations = LibAlchemy:sortOutAdditional(Combinations, effectAdditional)
+      Combinations = LibAlchemy:sortOutAdditional(Combinations, prolongedEffect)
     end
     if not Combinations[1] then
       Combinations = LibAlchemy:OneEffect(effect1)
@@ -144,6 +147,27 @@ function LibAlchemy:getBestCombination(tableOfEffects)
 
     return LibAlchemy:getCheapestCombination(Combinations)
   end
+end
+
+local potionEffectCache = {}
+LibAlchemy.effectCache = potionEffectCache
+function LibAlchemy:getBestCombination(tableOfEffects)
+  local sorted = {}
+  for i = 1, 4 do
+    local effect = tableOfEffects[i]
+    if effect then
+      table.insert(sorted, effect)
+    end
+  end
+  table.sort(sorted)
+
+  local hash = table.concat(sorted, "|")
+
+  if not potionEffectCache[hash] then
+    potionEffectCache[hash] = getCombinations(tableOfEffects)
+  end
+
+  return potionEffectCache[hash]
 end
 
 --input table of reagents' IDs for example {30148,30149,30150} and itemLink
@@ -174,9 +198,9 @@ function LibAlchemy:getCraftingCost(reagentsTable, itemLink)
   else
     result = result + LibAlchemy.solvents[solvent][solventType]
   end
-  if mainID == 239 then
+  if mainID == LIBALCHEMY_WRIT_ITEMTYPE_POISON then
     return result
-  elseif mainID == 199 then
+  elseif mainID == LIBALCHEMY_WRIT_ITEMTYPE_POTION then
     return result * 4
   elseif GetItemLinkItemType(itemLink) == 7 then
     return result / 4
@@ -190,10 +214,10 @@ end
 --outputs cheapest combination of reagents that will craft potion/poison required to fulfill master writ
 function LibAlchemy:getBestCombinationMasterWrit(itemLink)
   local solvent, effect1, effect2, effect3 = LibAlchemy:ATconvertItemLink(itemLink)
-  if solvent == 199 or solvent == 239 then
-    effect1 = LibAlchemy.effectsByWritID[effect1]
-    effect2 = LibAlchemy.effectsByWritID[effect2]
-    effect3 = LibAlchemy.effectsByWritID[effect3]
+  if solvent == LIBALCHEMY_WRIT_ITEMTYPE_POTION or solvent == LIBALCHEMY_WRIT_ITEMTYPE_POISON then
+    effect1 = LibAlchemy.potionEffectIdToString[effect1]
+    effect2 = LibAlchemy.potionEffectIdToString[effect2]
+    effect3 = LibAlchemy.potionEffectIdToString[effect3]
     if effect3 == 0 then
       local Combinations = LibAlchemy:TwoEffects(effect1, effect2)
       Combinations = LibAlchemy:sortOutWrongCombinations3(Combinations, { effect1, effect2 })
@@ -224,9 +248,9 @@ function LibAlchemy:getCraftingCostWithoutItemLink(reagentsTable, mainID, solven
   else
     result = result + solvents[solvent][type]
   end
-  if mainID == 239 then
+  if mainID == LIBALCHEMY_WRIT_ITEMTYPE_POISON then
     return result
-  elseif mainID == 199 then
+  elseif mainID == LIBALCHEMY_WRIT_ITEMTYPE_POTION then
     return result * 4
   elseif table.contains(potionPrimaryIDs, mainID) then
     return result / 4
@@ -576,27 +600,25 @@ end
 
 function LibAlchemy:GetEffectsFromItemLink(itemLink)
   local id = select(24, ZO_LinkHandler_ParseLink(itemLink)) or 0
-  local effect1, effect2, effect3, effect4
-  local calculation = math.floor(id / 65536) % 256
-  if calculation > 32 then
-    effect1 = calculation - 128
-    effect4 = effect1
-  else
-    effect1 = calculation
+
+  local b1 = math.floor(id / 65536) % 256
+  local b2 = math.floor(id / 256) % 256
+  local b3 = id % 256
+
+  local effect1 = b1 > 127 and b1 - 128 or b1
+  local effect2 = b2 > 127 and b2 - 128 or b2
+  local effect3 = b3 > 127 and b3 - 128 or b3
+
+  local prolongedEffect
+  if b1 > 127 then
+    prolongedEffect = effect1
+  elseif b2 > 127 then
+    prolongedEffect = effect2
+  elseif b3 > 127 then
+    prolongedEffect = effect3
   end
-  if (math.floor(id / 256) % 256) > 32 then
-    effect2 = (math.floor(id / 256) % 256) - 128
-    effect4 = effect2
-  else
-    effect2 = math.floor(id / 256) % 256
-  end
-  if (id % 256) > 32 then
-    effect3 = (id % 256) - 128
-    effect4 = effect3
-  else
-    effect3 = id % 256
-  end
-  return effect1, effect2, effect3, effect4
+
+  return effect1, effect2, effect3, prolongedEffect
 end
 
 function LibAlchemy:GenerateItemLinkFromID(id)

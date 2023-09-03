@@ -1,5 +1,3 @@
-LibAlchemy = LibAlchemy or {}
-
 LibAlchemy.reagents = {
   [30148] = {
     [1] = "|t-64:64:/esoui/art/icons/crafting_mushroom_blue_entoloma_cap_r1.dds|t|",
@@ -384,7 +382,7 @@ LibAlchemy.solvents = {
   },
 }
 
-LibAlchemy.effectsByWritID = {
+LibAlchemy.potionEffectIdToString = {
   [1] = "RestoreHealth",
   [2] = "RavageHealth",
   [3] = "RestoreMagicka",
@@ -417,9 +415,8 @@ LibAlchemy.effectsByWritID = {
   [30] = "Defile",
   [31] = "Heroism",
   [32] = "Timidity",
-
-
 }
+LibAlchemy.effectsByWritID = LibAlchemy.potionEffectIdToString -- for compatibility
 
 LibAlchemy.effectsByWritIDShort = {
   [1] = "+Health",
@@ -454,8 +451,6 @@ LibAlchemy.effectsByWritIDShort = {
   [30] = "-Defile",
   [31] = "+Heroism",
   [32] = "-Heroism",
-
-
 }
 
 LibAlchemy.trashPotions = {
@@ -620,7 +615,7 @@ LibAlchemy.effects = {
     [3] = 150789, --Dragon Bile
     [4] = 77583, --Beetle Scuttle
     [5] = 77587, --Fleshfly Larva
-    [6] = 139019, --Mother of Pearl
+    [6] = 139019, --Powdered Mother of Pearl
   },
   ["GradualRavageHealth"] = {
     [1] = 77587, --Fleshfly Larva
@@ -667,7 +662,7 @@ LibAlchemy.effects = {
   },
   ["Speed"] = {
     [1] = 150671, --Dragon Rheum
-    [2] = 139019, --Mother of Pearl
+    [2] = 139019, --Powdered Mother of Pearl
     [3] = 77589, --Scrib Jelly
     [4] = 30157, --Blessed Thistle
     [5] = 30153, --Namira's Rot
@@ -676,7 +671,7 @@ LibAlchemy.effects = {
     [1] = 77591, --Mudcrab Chitin
     [2] = 77590, --Nightshade
     [3] = 77583, --Beetle Scuttle
-    [4] = 139019, --Mother of Pearl
+    [4] = 139019, --Powdered Mother of Pearl
     [5] = 150670, --Vile Coagulant
   },
   ["Entrapment"] = {
@@ -703,7 +698,7 @@ LibAlchemy.effects = {
     [4] = 139020, --Clam Gall
   },
   ["RavageStamina"] = {
-    [1] = 30155, --Luminous Russla
+    [1] = 30155, --Luminous Russula
     [2] = 30156, --Imp Stool
     [3] = 30151, --Emetic Russula
     [4] = 30149, --Stinkhorn
@@ -724,7 +719,7 @@ LibAlchemy.effects = {
     [4] = 139020, --Clam Gall
   },
   ["Timidity"] = {
-    [1] = 150672, --Nirnroot Crimson
+    [1] = 150672, --Crimson Nirnroot
     [2] = 150670, --Vile Coagulant
     [3] = 150669, --Chaurus Egg
   }
