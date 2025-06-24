@@ -150,7 +150,7 @@ local function getCombinations(tableOfEffects)
 end
 
 local potionEffectCache = {}
-LibAlchemy.effectCache = potionEffectCache
+-- LibAlchemy.effectCache = potionEffectCache
 function LibAlchemy:getBestCombination(tableOfEffects)
   local sorted = {}
   for i = 1, 4 do
